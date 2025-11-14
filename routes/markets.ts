@@ -110,4 +110,69 @@ router.get('/:marketId', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * PUT /api/markets/:marketId/image
+ * Update market image URL
+ */
+router.put('/:marketId/image', async (req: Request, res: Response) => {
+  try {
+    const { marketId } = req.params;
+    const { imageUrl } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'Image URL is required',
+      });
+    }
+
+    try {
+      new URL(imageUrl);
+    } catch {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid image URL format',
+      });
+    }
+
+    const market = await prisma.market.findUnique({
+      where: { id: marketId },
+    });
+
+    if (!market) {
+      return res.status(404).json({
+        success: false,
+        error: 'Market not found',
+      });
+    }
+
+    const updatedMarket = await prisma.market.update({
+      where: { id: marketId },
+      data: { imageUrl },
+      include: {
+        protocol: true,
+        _count: {
+          select: {
+            bets: true,
+          },
+        },
+      },
+    });
+
+    const serializedMarket = serializeMarket(updatedMarket);
+
+    res.json({
+      success: true,
+      data: serializedMarket,
+      message: 'Market image updated successfully',
+    });
+  } catch (error) {
+    console.error('Error updating market image:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update market image',
+    });
+  }
+});
+
 export default router;

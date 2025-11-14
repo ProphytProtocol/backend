@@ -45,7 +45,6 @@ export async function uploadToWalrus(
       console.error('Walrus upload stderr:', stderr);
     }
 
-    // Fixed regex to include hyphens and underscores in blob IDs
     const blobIdMatch = stdout.match(/Blob ID:\s*([A-Za-z0-9\-_]+)/);
     const certifiedBlobMatch = stdout.match(
       /certified blob id:\s*([A-Za-z0-9\-_]+)/i
@@ -60,9 +59,8 @@ export async function uploadToWalrus(
     }
 
     const imageUrl = `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${blobId}`;
-    // Note: blobAddress should come from Walrus response if using HTTP API
-    // For CLI, we don't have a proper object ID, so we leave it as blobId
-    const blobAddress = blobId; // Don't fake Sui addresses
+
+    const blobAddress = blobId;
 
     return {
       blobId,
@@ -116,11 +114,11 @@ export async function uploadToWalrusHttp(
     }
 
     const imageUrl = `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${blobId}`;
-    // Use proper blob object ID from Walrus response
+
     const blobAddress =
       result.newlyCreated?.blobObject?.id ||
       result.alreadyCertified?.blobObject?.id ||
-      blobId; // Fallback to blobId, don't fake addresses
+      blobId;
 
     return {
       blobId,
@@ -141,7 +139,6 @@ export async function uploadPortfolioImage(
   imageBuffer: Buffer,
   filename: string = 'portfolio.png'
 ): Promise<WalrusUploadResult> {
-  // ✅ CRITICAL: Validate that buffer is actually an image
   if (!Buffer.isBuffer(imageBuffer)) {
     throw new Error('uploadPortfolioImage: Input is not a Buffer');
   }
@@ -150,7 +147,6 @@ export async function uploadPortfolioImage(
     throw new Error('uploadPortfolioImage: Buffer is empty');
   }
 
-  // ✅ CRITICAL: Check MIME type to ensure it's an image
   const fileType = await fileTypeFromBuffer(imageBuffer);
 
   if (!fileType) {
@@ -171,7 +167,6 @@ export async function uploadPortfolioImage(
     `✅ Validated image buffer: ${fileType.mime}, ${imageBuffer.length} bytes`
   );
 
-  // Try HTTP upload first
   try {
     return await uploadToWalrusHttp(imageBuffer);
   } catch (httpError) {

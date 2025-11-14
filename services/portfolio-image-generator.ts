@@ -232,7 +232,7 @@ export async function generateBetPortfolioImage(
     backdropRadius: 15,
   });
 
-  const elapsed = Math.floor(Date.now() / 1000) - data.timestamp;
+  const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - data.timestamp);
   drawTextWithBackdrop(
     ctx,
     `⏱ ${formatDuration(elapsed)}`,
@@ -346,7 +346,10 @@ export async function generateWinningPortfolioImage(
     backdropRadius: 12,
   });
 
-  const elapsed = Math.floor(Date.now() / 1000) - data.resolutionTimestamp;
+  const elapsed = Math.max(
+    0,
+    Math.floor(Date.now() / 1000) - data.resolutionTimestamp
+  );
   drawTextWithBackdrop(
     ctx,
     `⏱ ${formatDuration(elapsed)}`,

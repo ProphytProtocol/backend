@@ -60,4 +60,78 @@ router.get('/:address/bets', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/users/:address/stats
+ * Get betting statistics for a user
+ */
+router.get('/:address/stats', async (req: Request, res: Response) => {
+  try {
+    const { address } = req.params;
+
+    const bets = await prisma.bet.findMany({
+      where: { bettor: address },
+      include: {
+        market: true,
+        winningsClaimed: true,
+      },
+    });
+
+    const totalBets = bets.length;
+    const totalAmount = bets.reduce((sum, b) => sum + Number(b.amount), 0);
+
+    const yesBets = bets.filter((b) => b.position === true).length;
+    const noBets = bets.filter((b) => b.position === false).length;
+
+    const resolvedBets = bets.filter((b) => b.market.isResolved);
+    const wonBets = resolvedBets.filter(
+      (b) => b.position === b.market.outcome
+    ).length;
+    const lostBets = resolvedBets.filter(
+      (b) => b.position !== b.market.outcome
+    ).length;
+
+    const totalWinnings = bets.reduce(
+      (sum, b) => sum + Number(b.winningAmount || 0),
+      0
+    );
+    const totalYieldEarned = bets.reduce(
+      (sum, b) => sum + Number(b.yieldShare || 0),
+      0
+    );
+
+    const claimedBets = bets.filter((b) => b.isClaimed).length;
+    const unclaimedWinnings = wonBets - claimedBets;
+
+    const winRate =
+      resolvedBets.length > 0 ? (wonBets / resolvedBets.length) * 100 : 0;
+
+    const stats = {
+      bettor: address,
+      totalBets,
+      totalAmount,
+      yesBets,
+      noBets,
+      resolvedBets: resolvedBets.length,
+      wonBets,
+      lostBets,
+      winRate,
+      totalWinnings,
+      totalYieldEarned,
+      claimedBets,
+      unclaimedWinnings,
+    };
+
+    res.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user stats',
+    });
+  }
+});
+
 export default router;

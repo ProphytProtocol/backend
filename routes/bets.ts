@@ -44,7 +44,7 @@ router.post('/generate-bet-image', async (req: Request, res: Response) => {
       marketQuestion: question,
       transactionFee: '0',
       netAmount: amount,
-      timestamp: Date.now(),
+      timestamp: Math.floor(Date.now() / 1000),
     });
 
     console.log(`☁️  Uploading to Walrus...`);
@@ -125,12 +125,14 @@ router.post('/generate-winning-image', async (req: Request, res: Response) => {
       ).toString(),
       resolutionTimestamp:
         'resolutionTimestamp' in bet.market && bet.market.resolutionTimestamp
-          ? new Date(
-              (
-                bet.market as { resolutionTimestamp?: string }
-              ).resolutionTimestamp!
-            ).getTime()
-          : Date.now(),
+          ? Math.floor(
+              new Date(
+                (
+                  bet.market as { resolutionTimestamp?: string }
+                ).resolutionTimestamp!
+              ).getTime() / 1000
+            )
+          : Math.floor(Date.now() / 1000),
     });
 
     console.log(`☁️  Uploading to Walrus...`);
@@ -308,6 +310,107 @@ router.get('/market/:marketId', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch market bets',
+    });
+  }
+});
+
+/**
+ * GET /api/bets/recent
+ * Get recent bets across all markets
+ */
+router.get('/recent', async (req: Request, res: Response) => {
+  try {
+    const { limit = '10' } = req.query;
+
+    const bets = await prisma.bet.findMany({
+      include: {
+        market: {
+          include: { protocol: true },
+        },
+        winningsClaimed: true,
+      },
+      orderBy: { placedAt: 'desc' },
+      take: parseInt(limit as string),
+    });
+
+    const serializedBets = bets.map((bet) => ({
+      ...serializeBet(bet),
+      market: serializeMarket(bet.market),
+      winningsClaimed: bet.winningsClaimed
+        ? {
+            ...bet.winningsClaimed,
+            winningAmount: bet.winningsClaimed.winningAmount?.toString() || '0',
+            yieldShare: bet.winningsClaimed.yieldShare?.toString() || '0',
+          }
+        : null,
+    }));
+
+    res.json({
+      success: true,
+      data: serializedBets,
+    });
+  } catch (error) {
+    console.error('Error fetching recent bets:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch recent bets',
+    });
+  }
+});
+
+/**
+ * GET /api/bets
+ * Get bets with optional filters (marketId, bettor)
+ */
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const { marketId, bettor, limit = '50', offset = '0' } = req.query;
+
+    const where: Record<string, string> = {};
+    if (marketId) where.marketId = marketId as string;
+    if (bettor) where.bettor = bettor as string;
+
+    const bets = await prisma.bet.findMany({
+      where,
+      include: {
+        market: {
+          include: { protocol: true },
+        },
+        winningsClaimed: true,
+      },
+      orderBy: { placedAt: 'desc' },
+      take: parseInt(limit as string),
+      skip: parseInt(offset as string),
+    });
+
+    const total = await prisma.bet.count({ where });
+
+    const serializedBets = bets.map((bet) => ({
+      ...serializeBet(bet),
+      market: serializeMarket(bet.market),
+      winningsClaimed: bet.winningsClaimed
+        ? {
+            ...bet.winningsClaimed,
+            winningAmount: bet.winningsClaimed.winningAmount?.toString() || '0',
+            yieldShare: bet.winningsClaimed.yieldShare?.toString() || '0',
+          }
+        : null,
+    }));
+
+    res.json({
+      success: true,
+      data: serializedBets,
+      meta: {
+        total,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching bets:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch bets',
     });
   }
 });
