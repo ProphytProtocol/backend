@@ -39,7 +39,6 @@ router.post('/generate-bet-image', async (req: Request, res: Response) => {
 
     console.log(`🎨 Generating bet image for market ${marketId}...`);
     const timestamp = Math.floor(Date.now() / 1000);
-    console.log(`📅 Bet timestamp (seconds):`, timestamp);
     const imageBuffer = await generateBetPortfolioImage({
       position: position === true || position === 'YES',
       betAmount: amount,

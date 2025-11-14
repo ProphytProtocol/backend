@@ -75,16 +75,13 @@ function formatDuration(seconds: number): string {
 }
 
 function formatTimestamp(seconds: number): string {
-  console.log('formatTimestamp received:', seconds, 'type:', typeof seconds);
   const timestamp =
     typeof seconds === 'string' ? parseInt(seconds, 10) : seconds;
-  console.log('parsed timestamp:', timestamp, 'isNaN:', isNaN(timestamp));
   if (isNaN(timestamp) || timestamp <= 0) {
     console.log('timestamp invalid, returning N/A');
     return 'N/A';
   }
   const date = new Date(timestamp * 1000);
-  console.log('date object:', date, 'getTime:', date.getTime());
   if (isNaN(date.getTime())) {
     return 'N/A';
   }
@@ -95,7 +92,6 @@ function formatTimestamp(seconds: number): string {
     minute: '2-digit',
     hour12: true,
   }).format(date);
-  console.log('formatted date:', formatted);
   return formatted;
 }
 
