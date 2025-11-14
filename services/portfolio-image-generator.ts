@@ -74,6 +74,31 @@ function formatDuration(seconds: number): string {
   return `${minutes}m ${secs}s`;
 }
 
+function formatTimestamp(seconds: number): string {
+  console.log('formatTimestamp received:', seconds, 'type:', typeof seconds);
+  const timestamp =
+    typeof seconds === 'string' ? parseInt(seconds, 10) : seconds;
+  console.log('parsed timestamp:', timestamp, 'isNaN:', isNaN(timestamp));
+  if (isNaN(timestamp) || timestamp <= 0) {
+    console.log('timestamp invalid, returning N/A');
+    return 'N/A';
+  }
+  const date = new Date(timestamp * 1000);
+  console.log('date object:', date, 'getTime:', date.getTime());
+  if (isNaN(date.getTime())) {
+    return 'N/A';
+  }
+  const formatted = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
+  console.log('formatted date:', formatted);
+  return formatted;
+}
+
 function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -232,21 +257,15 @@ export async function generateBetPortfolioImage(
     backdropRadius: 15,
   });
 
-  const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - data.timestamp);
-  drawTextWithBackdrop(
-    ctx,
-    `⏱ ${formatDuration(elapsed)}`,
-    CANVAS_SIZE / 2,
-    520,
-    {
-      font: '28px StackSans, Arial',
-      color: COLORS.white,
-      align: 'center',
-      backdropColor: 'rgba(0, 0, 0, 0.7)',
-      backdropPadding: 20,
-      backdropRadius: 12,
-    }
-  );
+  const timeString = formatTimestamp(data.timestamp);
+  drawTextWithBackdrop(ctx, `${timeString}`, CANVAS_SIZE / 2, 520, {
+    font: '28px StackSans, Arial',
+    color: COLORS.white,
+    align: 'center',
+    backdropColor: 'rgba(0, 0, 0, 0.7)',
+    backdropPadding: 20,
+    backdropRadius: 12,
+  });
 
   ctx.font = '24px StackSans, Arial';
   ctx.textAlign = 'center';
